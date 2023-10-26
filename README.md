@@ -1,3 +1,5 @@
+source code for https://payoff-chart.mofu.dev
+
 setup
 
 ```bash
