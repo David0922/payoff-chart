@@ -1,0 +1,24 @@
+{
+  "name": "payoff-chart",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "build": "vite build",
+    "clean": "rm -rf ./dist",
+    "dev": "vite --host 0.0.0.0 --port 8080",
+    "start": "vite preview --host 0.0.0.0 --port 8080"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.16",
+    "npm-check-updates": "^16.14.6",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.5",
+    "typescript": "^5.2.2",
+    "vite": "^4.5.0",
+    "vite-plugin-solid": "^2.7.2"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0",
+    "solid-js": "^1.8.3"
+  }
+}
