@@ -1,5 +1,5 @@
-import Chart from 'chart.js/auto';
-import { Component, createEffect } from 'solid-js';
+import Chart, { ChartItem, ChartType } from 'chart.js/auto';
+import { Accessor, Component, createEffect } from 'solid-js';
 
 import { Comb, Security, flattenX } from '../lib/security';
 import {
@@ -8,78 +8,110 @@ import {
   removeDuplicatesAndSort,
 } from '../lib/utils';
 
+class ChartSingleton {
+  static instance: Chart;
+
+  private constructor() {}
+
+  public static init(ctx: ChartItem, type: ChartType) {
+    if (!ChartSingleton.instance) {
+      ChartSingleton.instance = new Chart(ctx, {
+        type,
+        data: { datasets: [] },
+      });
+    }
+  }
+
+  public static getInstance(): Chart {
+    return ChartSingleton.instance;
+  }
+}
+
+const securitiesX = (
+  securities: Security[],
+  targetGains: number[]
+): number[] => {
+  const inf = 1000000;
+  let prices = flattenX(securities);
+
+  for (let security of securities) {
+    const x = [0, ...security.x(), inf];
+
+    for (let i = 0; i < x.length - 1; ++i) {
+      for (let targetGain of targetGains) {
+        const [priceAtZero, found] = binarySearch(
+          x[i],
+          x[i + 1],
+          targetGain,
+          (price: number) => security.gainAtPrice(price)
+        );
+
+        if (found) prices.push(priceAtZero);
+      }
+    }
+  }
+
+  prices = removeDuplicatesAndSort(prices);
+
+  const margin = prices[prices.length >> 1] * 0.01;
+
+  return [prices[0] - margin, ...prices, prices[prices.length - 1] + margin];
+};
+
 const PayoffChart: Component<{
-  securities: Security[];
+  securities: Accessor<Security[]>;
   comb: boolean;
-  combTitle: string;
-  targetGains: number[];
+  combTitle: Accessor<string>;
+  targetGains: Accessor<number[]>;
 }> = props => {
   let canvas: HTMLCanvasElement;
 
-  const toGraph: Security[] = props.comb
-    ? [...props.securities, new Comb(props.securities, props.combTitle)]
-    : props.securities;
-
   createEffect(() => {
     const ctx = canvas.getContext('2d');
+    ChartSingleton.init(ctx, 'line');
 
-    const inf = 1000000;
-    let prices = flattenX(toGraph);
+    const chart = ChartSingleton.getInstance();
 
-    for (let security of toGraph) {
-      const x = [0, ...security.x(), inf];
+    const activeSecurities = props
+      .securities()
+      .filter(security => security.active);
 
-      for (let i = 0; i < x.length - 1; ++i) {
-        for (let targetGain of props.targetGains) {
-          const [priceAtZero, found] = binarySearch(
-            x[i],
-            x[i + 1],
-            targetGain,
-            (price: number) => security.gainAtPrice(price)
-          );
-
-          if (found) prices.push(priceAtZero);
-        }
-      }
-    }
-
-    prices = removeDuplicatesAndSort(prices);
-    prices = [
-      prices[0] - prices[prices.length >> 1] * 0.01,
-      ...prices,
-      prices[prices.length - 1] + prices[prices.length >> 1] * 0.01,
-    ];
+    const toGraph =
+      props.comb && activeSecurities.length > 1
+        ? [...activeSecurities, new Comb(activeSecurities, props.combTitle())]
+        : activeSecurities;
 
     const colors = distinctColors(toGraph.length);
+    const prices = securitiesX(toGraph, props.targetGains());
 
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: prices,
-        datasets: toGraph.map((security, idx) => {
-          const isComb = props.comb && idx === toGraph.length - 1;
+    chart.data = {
+      labels: prices,
+      datasets: toGraph.map((security, idx) => {
+        const isComb = props.comb && idx === toGraph.length - 1;
 
-          return {
-            label: security.label(),
-            data: prices.map(price => security.gainAtPrice(price)),
-            borderColor: colors[idx],
-            borderWidth: isComb ? 2 : 1,
-            borderDash: isComb ? [] : [10, 8],
-          };
-        }),
-      },
-      options: {
-        scales: {
-          x: {
-            type: 'linear',
-          },
-          y: {
-            beginAtZero: true,
-            type: 'linear',
-          },
+        return {
+          label: security.label(),
+          data: prices.map(price => security.gainAtPrice(price)),
+          borderColor: colors[idx],
+          borderWidth: isComb ? 2 : 1,
+          borderDash: isComb ? [] : [10, 8],
+        };
+      }),
+    };
+
+    chart.options = {
+      scales: {
+        x: {
+          type: 'linear',
+        },
+        y: {
+          beginAtZero: true,
+          type: 'linear',
         },
       },
-    });
+    };
+
+    chart.update('none');
   });
 
   return <canvas ref={canvas} />;

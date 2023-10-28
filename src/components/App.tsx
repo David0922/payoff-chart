@@ -1,29 +1,84 @@
-import { Component } from 'solid-js';
+import { Component, createSignal } from 'solid-js';
 
-import { Option, Security, StockStopOrder } from '../lib/security';
+import { Option, Security, Stock } from '../lib/security';
 import PayoffChart from './PayoffChart';
+import SecurityComp from './SecurityComp';
 
 const App: Component = () => {
-  const strikePrice = 96;
-  const callPremium = 4.18;
-  const putPremium = 3.7;
+  const [title, setTitle] = createSignal('');
+  const [targetGains, setTargetGains] = createSignal<number[]>([0]);
 
-  const securities: Security[] = [
-    new Option('call', strikePrice, callPremium, 'short'),
-    new Option('put', strikePrice, putPremium, 'short'),
-    new StockStopOrder(strikePrice + callPremium, 'long'),
-    new StockStopOrder(strikePrice - putPremium, 'short'),
-  ];
+  const strikePrice = 100;
+  const callPremium = 5;
+  const putPremium = 5;
+
+  const [securities, setSecurities] = createSignal<Security[]>([
+    new Option('short', 'call', strikePrice, callPremium),
+    new Option('short', 'put', strikePrice, putPremium),
+    // new Stock('long', strikePrice + callPremium, 'stop'),
+    // new Stock('short', strikePrice - putPremium, 'stop'),
+  ]);
+
+  const addSecurity = () =>
+    setSecurities([...securities(), new Stock('long', 0, 'limit')]);
+
+  const updateSecurity = (oldId: number, updated: Security) =>
+    setSecurities(
+      securities().map(security => (security.id === oldId ? updated : security))
+    );
+
+  const deleteSecurity = (id: number) =>
+    setSecurities(securities().filter(security => security.id !== id));
 
   return (
-    <div class='flex h-screen'>
-      {/* <div class='bg-neutral-200 overflow-y-auto w-96'></div> */}
+    <div class='flex gap-4 h-screen p-4'>
+      <div class='flex flex-col gap-4 w-96'>
+        <div class='flex gap-4'>
+          <input
+            class='bg-neutral-100 px-4 py-2 w-8 grow'
+            placeholder='label'
+            onchange={e => setTitle(e.target.value)}
+          />
+          <input
+            class='bg-neutral-100 px-4 py-2 w-8 grow'
+            placeholder='target gains'
+            onchange={e =>
+              setTargetGains(
+                e.target.value
+                  .split(',')
+                  .map(Number)
+                  .filter(num => !isNaN(num))
+              )
+            }
+          />
+        </div>
+        <div class='flex flex-col gap-4 grow overflow-y-auto'>
+          {securities().map((security, idx) => (
+            <>
+              {idx > 0 && (
+                <div class='border-b border-dashed border-neutral-400' />
+              )}
+              <SecurityComp
+                security={security}
+                update={updateSecurity}
+                delete={() => deleteSecurity(security.id)}
+              />
+            </>
+          ))}
+        </div>
+
+        <button
+          class='border border-neutral-400 bg-neutral-50 hover:bg-neutral-100 py-2 material-symbols-outlined'
+          onclick={addSecurity}>
+          add
+        </button>
+      </div>
       <div class='flex grow items-center'>
         <PayoffChart
           securities={securities}
           comb={true}
-          combTitle='AMD'
-          targetGains={[0, 4.5, 5]}
+          combTitle={title}
+          targetGains={targetGains}
         />
       </div>
     </div>
