@@ -1,6 +1,10 @@
+import { removeDuplicatesAndSort } from './utils';
+
+export type SecurityType = 'stock' | 'stock (stop order)' | 'option' | 'comb';
 export type Position = 'long' | 'short';
 
 export interface Security {
+  type: SecurityType;
   position: Position;
 
   gainAtPrice(price: number): number;
@@ -13,16 +17,18 @@ function mul(position: Position) {
 }
 
 export function flattenX(securities: Security[]): number[] {
-  return [...new Set(securities.map(security => security.x()).flat())].sort(
-    (a, b) => a - b
+  return removeDuplicatesAndSort(
+    securities.map(security => security.x()).flat()
   );
 }
 
 export class Stock implements Security {
+  type: SecurityType;
   price: number;
   position: Position;
 
   constructor(price: number, position: Position) {
+    this.type = 'stock';
     this.price = price;
     this.position = position;
   }
@@ -40,11 +46,13 @@ export class Stock implements Security {
   }
 }
 
-export class TriggeredStock implements Security {
+export class StockStopOrder implements Security {
+  type: SecurityType;
   triggerPrice: number;
   position: Position;
 
   constructor(triggerPrice: number, position: Position) {
+    this.type = 'stock (stop order)';
     this.triggerPrice = triggerPrice;
     this.position = position;
   }
@@ -65,26 +73,28 @@ export class TriggeredStock implements Security {
 export type OptionType = 'call' | 'put';
 
 export class Option implements Security {
-  type: OptionType;
+  type: SecurityType;
+  optionType: OptionType;
   strikePrice: number;
   premium: number;
   breakEven: number;
   position: Position;
 
   constructor(
-    type: OptionType,
+    optionType: OptionType,
     strikePrice: number,
     premium: number,
     position: Position
   ) {
-    this.type = type;
+    this.type = 'option';
+    this.optionType = optionType;
     this.strikePrice = strikePrice;
     this.premium = premium;
     this.position = position;
   }
 
   optionMul(): number {
-    return this.type === 'call' ? 1 : -1;
+    return this.optionType === 'call' ? 1 : -1;
   }
 
   gainAtPrice(stockPrice: number): number {
@@ -103,16 +113,18 @@ export class Option implements Security {
   }
 
   label(): string {
-    return `${this.position} ${this.type}, strike: ${this.strikePrice}, premium: ${this.premium}`;
+    return `${this.position} ${this.optionType}, strike: ${this.strikePrice}, premium: ${this.premium}`;
   }
 }
 
 export class Comb implements Security {
+  type: SecurityType;
   securities: Security[];
   position: Position = 'long';
   title: string;
 
-  constructor(securities: Security[], label) {
+  constructor(securities: Security[], label: string) {
+    this.type = 'comb';
     this.securities = securities;
     this.title = label;
   }
