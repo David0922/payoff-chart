@@ -29,19 +29,20 @@ class ChartSingleton {
 
 const securitiesX = (
   securities: Security[],
-  targetGains: number[]
+  x: number[],
+  y: number[]
 ): number[] => {
   const inf = 1000000;
-  let prices = flattenX(securities);
+  let prices = [...x, ...flattenX(securities)];
 
   for (let security of securities) {
-    const x = [0, ...security.x(), inf];
+    const sx = [0, ...security.x(), inf];
 
-    for (let i = 0; i < x.length - 1; ++i) {
-      for (let targetGain of targetGains) {
+    for (let i = 0; i < sx.length - 1; ++i) {
+      for (let targetGain of y) {
         const [priceAtZero, found] = binarySearch(
-          x[i],
-          x[i + 1],
+          sx[i],
+          sx[i + 1],
           targetGain,
           (price: number) => security.gainAtPrice(price)
         );
@@ -62,7 +63,8 @@ const PayoffChart: Component<{
   securities: Accessor<Security[]>;
   comb: boolean;
   combTitle: Accessor<string>;
-  targetGains: Accessor<number[]>;
+  x: Accessor<number[]>;
+  y: Accessor<number[]>;
 }> = props => {
   let canvas: HTMLCanvasElement;
 
@@ -82,7 +84,7 @@ const PayoffChart: Component<{
         : activeSecurities;
 
     const colors = distinctColors(toGraph.length);
-    const prices = securitiesX(toGraph, props.targetGains());
+    const prices = securitiesX(toGraph, props.x(), props.y());
 
     chart.data = {
       labels: prices,

@@ -6,7 +6,8 @@ import SecurityComp from './SecurityComp';
 
 const App: Component = () => {
   const [title, setTitle] = createSignal('');
-  const [targetGains, setTargetGains] = createSignal<number[]>([0]);
+  const [x, setX] = createSignal<number[]>([]);
+  const [y, setY] = createSignal<number[]>([0]);
 
   const strikePrice = 100;
   const callPremium = 5;
@@ -35,17 +36,31 @@ const App: Component = () => {
       <div class='flex flex-col gap-4 w-96'>
         <div class='flex gap-4'>
           <input
-            class='bg-neutral-100 px-4 py-2 w-8 grow'
+            class='bg-neutral-100 px-4 py-2 w-4 grow'
             placeholder='label'
             onchange={e => setTitle(e.target.value)}
           />
           <input
-            class='bg-neutral-100 px-4 py-2 w-8 grow'
-            placeholder='target gains'
+            class='bg-neutral-100 px-4 py-2 w-4 grow'
+            placeholder='x'
             onchange={e =>
-              setTargetGains(
+              setX(
                 e.target.value
-                  .split(',')
+                  .split(' ')
+                  .filter(x => x)
+                  .map(Number)
+                  .filter(num => !isNaN(num))
+              )
+            }
+          />
+          <input
+            class='bg-neutral-100 px-4 py-2 w-4 grow'
+            placeholder='y'
+            onchange={e =>
+              setY(
+                e.target.value
+                  .split(' ')
+                  .filter(y => y)
                   .map(Number)
                   .filter(num => !isNaN(num))
               )
@@ -78,7 +93,8 @@ const App: Component = () => {
           securities={securities}
           comb={true}
           combTitle={title}
-          targetGains={targetGains}
+          x={x}
+          y={y}
         />
       </div>
     </div>
