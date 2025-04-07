@@ -15,6 +15,7 @@ export interface Security {
   id: number;
   type: SecurityType;
   position: Position;
+  shares: number;
   active: boolean;
 
   gainAtPrice(price: number): number;
@@ -22,8 +23,8 @@ export interface Security {
   label(): string;
 }
 
-function mul(position: Position) {
-  return position === 'long' ? 1 : -1;
+function mul(position: Position, shares: number) {
+  return (position === 'long' ? 1 : -1) * shares;
 }
 
 export function flattenX(securities: Security[]): number[] {
@@ -41,12 +42,14 @@ export class Stock implements Security {
   orderType: OrderType;
   price: number;
   position: Position;
+  shares: number;
   active: boolean;
 
   constructor(
     position: Position,
     price: number,
     orderType: OrderType = 'limit',
+    shares = 1,
     active = true
   ) {
     this.id = newId();
@@ -54,15 +57,19 @@ export class Stock implements Security {
     this.orderType = orderType;
     this.price = price;
     this.position = position;
+    this.shares = shares;
     this.active = active;
   }
 
   gainAtPrice(stockPrice: number): number {
     if (!this.active) return 0;
     else if (this.orderType === 'limit')
-      return (stockPrice - this.price) * mul(this.position);
+      return (stockPrice - this.price) * mul(this.position, this.shares);
     else if (this.orderType === 'stop')
-      return Math.max(0, (stockPrice - this.price) * mul(this.position));
+      return Math.max(
+        0,
+        (stockPrice - this.price) * mul(this.position, this.shares)
+      );
   }
 
   x(): number[] {
@@ -82,6 +89,7 @@ export class Option implements Security {
   premium: number;
   breakEven: number;
   position: Position;
+  shares: number;
   active: boolean;
 
   constructor(
@@ -89,6 +97,7 @@ export class Option implements Security {
     optionType: OptionType,
     strikePrice: number,
     premium: number,
+    shares = 1,
     active = true
   ) {
     this.id = newId();
@@ -97,6 +106,7 @@ export class Option implements Security {
     this.strikePrice = strikePrice;
     this.premium = premium;
     this.position = position;
+    this.shares = shares;
     this.active = active;
   }
 
@@ -108,7 +118,7 @@ export class Option implements Security {
     return this.active
       ? (Math.max(0, (stockPrice - this.strikePrice) * this.optionMul()) -
           this.premium) *
-          mul(this.position)
+          mul(this.position, this.shares)
       : 0;
   }
 
@@ -128,6 +138,7 @@ export class Comb implements Security {
   type: SecurityType;
   securities: Security[];
   position: Position = 'long';
+  shares: number = 1;
   title: string;
   active: boolean;
 

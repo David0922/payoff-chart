@@ -40,18 +40,26 @@ const SecurityComp: Component<{
   const [premium, setPremium] = createSignal<number>(
     props.security instanceof Option ? props.security.premium : 0
   );
+  const [shares, setShares] = createSignal(props.security.shares);
   const [active, setActive] = createSignal(props.security.active);
 
   const update = () => {
     if (type() === 'stock') {
       props.update(
         props.security.id,
-        new Stock(position(), price(), orderType(), active())
+        new Stock(position(), price(), orderType(), shares(), active())
       );
     } else if (type() === 'option') {
       props.update(
         props.security.id,
-        new Option(position(), optionType(), price(), premium(), active())
+        new Option(
+          position(),
+          optionType(),
+          price(),
+          premium(),
+          shares(),
+          active()
+        )
       );
     }
   };
@@ -86,16 +94,18 @@ const SecurityComp: Component<{
           onclick={() => {
             setActive(!active());
             update();
-          }}>
+          }}
+        >
           {active() ? 'toggle_on' : 'toggle_off'}
         </button>
         <button
           class='text-red-800 bg-red-50 border border-red-400 hover:bg-red-100 px-2.5 material-symbols-outlined'
-          onclick={props.delete}>
+          onclick={props.delete}
+        >
           close
         </button>
       </div>
-      <div class='flex'>
+      <div class='flex gap-4'>
         <div class='grow'>
           <CheckBox
             btnAttr={btnAttr<Position>(
@@ -124,6 +134,20 @@ const SecurityComp: Component<{
             />
           )}
         </div>
+      </div>
+      <div class='flex gap-4 items-center'>
+        <label for={`shares-${props.security.id}`}>shares</label>
+        <input
+          type='number'
+          id={`shares-${props.security.id}`}
+          class='bg-neutral-100 grow w-4 px-4 py-2'
+          value={shares()}
+          onclick={e => e.currentTarget.select()}
+          onchange={e => {
+            setShares(Number(e.target.value));
+            update();
+          }}
+        />
       </div>
       <div class='flex gap-4 items-center'>
         {type() === 'stock' && (
