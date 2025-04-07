@@ -1,16 +1,16 @@
 source code for https://payoff-chart.mofu.dev
 
-setup
+install dependencies
 
 ```bash
-yarn
+pnpm install
 ```
 
 run locally
 
 ```bash
-yarn build
-yarn start
+pnpm build
+pnpm start
 ```
 
 containerize

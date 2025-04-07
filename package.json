@@ -23,5 +23,10 @@
     "chart.js": "^4.4.0",
     "solid-js": "^1.8.4"
   },
-  "homepage": "https://payoff-chart.mofu.dev"
+  "homepage": "https://payoff-chart.mofu.dev",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
 }
